@@ -154,7 +154,14 @@ def process_request(params):
 
         if option_parser.action == 'analyze':
             for interp_list in morfeusz.analyse(option_parser.text):
-                results.append(tag_items(interp_list))
+                if isinstance(interp_list, list):
+                    subitem = []
+                    results.append(subitem)
+
+                    for item in interp_list:
+                        subitem.append(tag_items(item))
+                else:
+                    results.append(tag_items(interp_list))
         elif option_parser.action == 'generate':
             for title in option_parser.titles:
                 subitem = []
