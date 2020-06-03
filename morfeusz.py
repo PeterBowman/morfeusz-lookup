@@ -172,5 +172,6 @@ def process_request(params):
 
         response['version'] = morfeusz2.__version__
         response['dictionaryId'] = morfeusz.dict_id()
+        response['copyright'] = morfeusz.dict_copyright()
 
     return response
