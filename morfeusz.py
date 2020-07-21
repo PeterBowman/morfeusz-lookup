@@ -124,8 +124,8 @@ def tag_items(interp_list):
     else:
         morph_info = interp_list
 
-    item['form'] = morph_info[0]
-    item['lemma'] = morph_info[1]
+    item['form'] = morph_info[0].replace('_', ' ')
+    item['lemma'] = morph_info[1].replace('_', ' ')
     item['tag'] = morph_info[2]
     item['name'] = morph_info[3]
     item['labels'] = morph_info[4]
