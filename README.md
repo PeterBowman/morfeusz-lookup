@@ -16,5 +16,6 @@ API endpoint for a web service based on the [Morfeusz morphological analyser](ht
 BSD 2-Clause, see [LICENSE.txt](./LICENSE.txt) for details.
 
 ## See also
-* [Java implementation](https://github.com/PeterBowman/wikibot/blob/25dca7da0712b642ab0fb06218e60cd11c54f401/webapp/src/main/java/com/github/wikibot/webapp/MorfeuszLookup.java)
+* [WS:AUTOLINK](https://pl.wiktionary.org/wiki/Wikis%C5%82ownik:Narz%C4%99dzia/Linkowanie_automatyczne) at pl.wiktionary.org
+* [Java implementation](https://github.com/PeterBowman/wikibot/blob/25dca7da0712b642ab0fb06218e60cd11c54f401/webapp/src/main/java/com/github/wikibot/webapp/MorfeuszLookup.java) (I'm not maintaining this anymore)
 * https://morfeusz.toolforge.org/api
