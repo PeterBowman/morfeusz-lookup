@@ -82,9 +82,10 @@ class MorfeuszOptionParser:
             return
 
         param_value = self.__consume_param(url_param)
+        actions = ['analyze', 'generate']
 
-        if not param_value in ['analyze', 'generate']:
-            self.issues.append('unsupported action "%s"; available: %s')
+        if not param_value in actions:
+            self.issues.append('unsupported action "%s"; available: %s' % (param_value, actions))
             return
 
         self.action = param_value
