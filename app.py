@@ -6,7 +6,9 @@ from concraft_pl2 import Concraft, Server
 app = Flask(__name__)
 
 model_path = os.environ.get('CONCRAFT_PL_MODEL')
-server = Server(model_path=model_path)
+concraft_path = os.environ.get('CONCRAFT_PL_EXECUTABLE')
+
+server = Server(concraft_path=concraft_path, model_path=model_path)
 concraft = Concraft()
 
 @app.route('/api')
