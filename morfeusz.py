@@ -20,7 +20,7 @@ class WhitespaceHandling(Enum):
 AGGLUTINATION_RULES = ['strict', 'isolated', 'permissive']
 PAST_TENSE_SEGMENTATION = ['split', 'composite']
 
-CONCRAFT_FORBIDDEN_CFG = {
+CONCRAFT_FORBIDDEN = {
     'expand_tags': False,
     'expand_dag': True,
     'expand_dot': False,
@@ -167,13 +167,13 @@ def process_request(params, concraft):
 
     if option_parser.validate(response):
         option_parser.set_dictionary_path('MORFEUSZ_DICT_PATH')
-        options = option_parser.get_opts()
-        morfeusz = Morfeusz(**options)
+        opts = option_parser.get_opts()
+        morfeusz = Morfeusz(**opts)
 
         if option_parser.action == 'analyze':
             dag = morfeusz.analyse(option_parser.text)
 
-            if len([k for k in options if k in CONCRAFT_FORBIDDEN_CFG and options[k] == CONCRAFT_FORBIDDEN_CFG[k]]) == 0:
+            if concraft is not None and len([k for k in opts if k in CONCRAFT_FORBIDDEN and opts[k] == CONCRAFT_FORBIDDEN[k]]) == 0:
                 dag = concraft.disamb(dag)
 
             for interp in dag:

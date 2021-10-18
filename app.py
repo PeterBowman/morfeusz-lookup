@@ -8,8 +8,12 @@ app = Flask(__name__)
 model_path = os.environ.get('CONCRAFT_PL_MODEL')
 concraft_path = os.environ.get('CONCRAFT_PL_EXECUTABLE')
 
-server = Server(concraft_path=concraft_path, model_path=model_path)
-concraft = Concraft()
+if model_path is not None and concraft_path is not None:
+    server = Server(concraft_path=concraft_path, model_path=model_path)
+    concraft = Concraft()
+else:
+    server = None
+    concraft = None
 
 @app.route('/api')
 def api():
@@ -24,4 +28,4 @@ if __name__ == '__main__':
     try:
         app.run()
     finally:
-        server.terminate()
+        if server is not None: server.terminate()
