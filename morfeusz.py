@@ -20,6 +20,14 @@ class WhitespaceHandling(Enum):
 AGGLUTINATION_RULES = ['strict', 'isolated', 'permissive']
 PAST_TENSE_SEGMENTATION = ['split', 'composite']
 
+CONCRAFT_FORBIDDEN_CFG = {
+    'expand_tags': False,
+    'expand_dag': True,
+    'expand_dot': False,
+    'praet': 'composite',
+    'whitespace': morfeusz2.KEEP_WHITESPACES
+}
+
 class MorfeuszOptionParser:
     def __init__(self, url_params):
         self.url_params = dict(url_params)
@@ -42,15 +50,16 @@ class MorfeuszOptionParser:
         import os
         self.morfeusz_opts['dict_path'] = os.environ.get(env_var)
 
-    def parse_bool(self, url_param, morfeusz_param):
+    def parse_bool(self, url_param, morfeusz_param, default):
         if not url_param in self.url_params:
-            return
+            self.morfeusz_opts[morfeusz_param] = default
+        else:
+            param_value = self.__consume_param(url_param)
+            self.morfeusz_opts[morfeusz_param] = bool(strtobool(param_value))
 
-        param_value = self.__consume_param(url_param)
-        self.morfeusz_opts[morfeusz_param] = bool(strtobool(param_value))
-
-    def parse_string(self, url_param, morfeusz_param, accepted_values):
+    def parse_string(self, url_param, morfeusz_param, accepted_values, default):
         if not url_param in self.url_params:
+            self.morfeusz_opts[morfeusz_param] = default
             return
 
         param_value = self.__consume_param(url_param)
@@ -61,18 +70,19 @@ class MorfeuszOptionParser:
 
         self.morfeusz_opts[morfeusz_param] = param_value
 
-    def parse_enum(self, url_param, morfeusz_param, enum_class, bool_option=None):
+    def parse_enum(self, url_param, morfeusz_param, enum_class, default, bool_option=None):
         if not url_param in self.url_params:
-            return
+            enum_member = default
+        else:
+            param_value = self.__consume_param(url_param)
 
-        param_value = self.__consume_param(url_param)
+            if not param_value in enum_class.__members__:
+                accepted_values = ['%s' % e.name for e in enum_class]
+                self.__report_unsupported(url_param, param_value, accepted_values)
+                return
 
-        if not param_value in enum_class.__members__:
-            accepted_values = ['%s' % e.name for e in enum_class]
-            self.__report_unsupported(url_param, param_value, accepted_values)
-            return
+            enum_member = enum_class[param_value]
 
-        enum_member = enum_class[param_value]
         value = enum_member.value if bool_option is None else (enum_member is bool_option)
         self.morfeusz_opts[morfeusz_param] = value
 
@@ -115,15 +125,21 @@ class MorfeuszOptionParser:
 
         return success
 
-def tag_items(interp_list):
+def tag_items(interp):
     item = {}
 
-    if len(interp_list) == 3:
-        morph_info = interp_list[2]
-        item['start'] = interp_list[0]
-        item['end'] = interp_list[1]
+    if len(interp) >= 3:
+        # analysis
+        item['start'] = interp[0]
+        item['end'] = interp[1]
+        morph_info = interp[2]
+
+        if len(interp) == 6:
+            item['probability'] = float(interp[3])
+            item['disamb'] = interp[5] is not None
     else:
-        morph_info = interp_list
+        # generation
+        morph_info = interp
 
     item['form'] = morph_info[0].replace('_', ' ')
     item['lemma'] = morph_info[1].replace('_', ' ')
@@ -133,17 +149,17 @@ def tag_items(interp_list):
 
     return item
 
-def process_request(params):
+def process_request(params, concraft):
     option_parser = MorfeuszOptionParser(params)
-    option_parser.parse_bool('expandDag', 'expand_dag')
-    option_parser.parse_bool('expandTags', 'expand_tags')
-    option_parser.parse_bool('expandDot', 'expand_dot')
-    option_parser.parse_bool('expandUnderscore', 'expand_underscore')
-    option_parser.parse_string('agglutinationRules', 'aggl', AGGLUTINATION_RULES)
-    option_parser.parse_string('pastTenseSegmentation', 'praet', PAST_TENSE_SEGMENTATION)
-    option_parser.parse_enum('tokenNumbering', 'separate_numbering', TokenNumbering, TokenNumbering.separate)
-    option_parser.parse_enum('caseHandling', 'case_handling', CaseHandling)
-    option_parser.parse_enum('whitespaceHandling', 'whitespace', WhitespaceHandling)
+    option_parser.parse_bool('expandDag', 'expand_dag', False)
+    option_parser.parse_bool('expandTags', 'expand_tags', False)
+    option_parser.parse_bool('expandDot', 'expand_dot', True)
+    option_parser.parse_bool('expandUnderscore', 'expand_underscore', True)
+    option_parser.parse_string('agglutinationRules', 'aggl', AGGLUTINATION_RULES, 'strict')
+    option_parser.parse_string('pastTenseSegmentation', 'praet', PAST_TENSE_SEGMENTATION, 'split')
+    option_parser.parse_enum('tokenNumbering', 'separate_numbering', TokenNumbering, TokenNumbering.separate, TokenNumbering.separate)
+    option_parser.parse_enum('caseHandling', 'case_handling', CaseHandling, CaseHandling.conditional)
+    option_parser.parse_enum('whitespaceHandling', 'whitespace', WhitespaceHandling, WhitespaceHandling.skip)
     option_parser.parse_actions('action')
 
     results = []
@@ -151,25 +167,31 @@ def process_request(params):
 
     if option_parser.validate(response):
         option_parser.set_dictionary_path('MORFEUSZ_DICT_PATH')
-        morfeusz = Morfeusz(**option_parser.get_opts())
+        options = option_parser.get_opts()
+        morfeusz = Morfeusz(**options)
 
         if option_parser.action == 'analyze':
-            for interp_list in morfeusz.analyse(option_parser.text):
-                if isinstance(interp_list, list):
+            dag = morfeusz.analyse(option_parser.text)
+
+            if len([k for k in options if k in CONCRAFT_FORBIDDEN_CFG and options[k] == CONCRAFT_FORBIDDEN_CFG[k]]) == 0:
+                dag = concraft.disamb(dag)
+
+            for interp in dag:
+                if isinstance(interp, list):
                     subitem = []
                     results.append(subitem)
 
-                    for item in interp_list:
+                    for item in interp:
                         subitem.append(tag_items(item))
-                else:
-                    results.append(tag_items(interp_list))
+                elif isinstance(interp, tuple):
+                    results.append(tag_items(interp))
         elif option_parser.action == 'generate':
             for title in option_parser.titles:
                 subitem = []
                 results.append(subitem)
 
-                for interp_list in morfeusz.generate(title):
-                    subitem.append(tag_items(interp_list))
+                for interp in morfeusz.generate(title):
+                    subitem.append(tag_items(interp))
 
         response['version'] = morfeusz2.__version__
         response['dictionaryId'] = morfeusz.dict_id()

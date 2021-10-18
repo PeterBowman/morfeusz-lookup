@@ -9,6 +9,8 @@ Copyright (c) 2020, Bartek Łukawski
   Danuta Skowrońska.
 - The copyright holder of Polimorf inflectional data is Institute of Computer
   Science PAS.
+- The copyright holder of Concraft-pl morphosyntactic disambiguator is
+  Jakub Waszczuk.
 
 All rights reserved.
 
