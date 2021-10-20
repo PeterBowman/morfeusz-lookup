@@ -12,6 +12,7 @@ import requests
 import json
 import time
 from subprocess import Popen, PIPE
+import uwsgi
 
 
 class Concraft(object):
@@ -63,8 +64,13 @@ class Concraft(object):
         analyse_list = []
         # TODO: only add '\n' if necessary!
         request_data = {'dag':dag + '\n'}
-        r = requests.post(self.server_addr, data=json.dumps(request_data))
-        return r.json()['dag']
+
+        try:
+            uwsgi.lock()
+            r = requests.post(self.server_addr, data=json.dumps(request_data))
+            return r.json()['dag']
+        finally:
+            uwsgi.unlock()
 
     def disamb(self, dag):
         """
