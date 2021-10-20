@@ -197,4 +197,7 @@ def process_request(params, concraft):
         response['dictionaryId'] = morfeusz.dict_id()
         response['copyright'] = morfeusz.dict_copyright()
 
+        # HACK: memory deallocation seems broken (affects Py3 bindings, not the C++ lib)
+        morfeusz2._Morfeusz.__swig_destroy__(morfeusz._morfeusz_obj)
+
     return response
