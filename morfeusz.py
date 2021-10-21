@@ -125,21 +125,24 @@ class MorfeuszOptionParser:
 
         return success
 
-def tag_items(interp):
+def tag_items(interp, action):
     item = {}
 
-    if len(interp) >= 3:
+    if action == 'analyze':
         # analysis
         item['start'] = interp[0]
         item['end'] = interp[1]
         morph_info = interp[2]
 
         if len(interp) == 6:
+            # Concraft enabled
             item['probability'] = float(interp[3])
             item['disamb'] = interp[5] is not None
-    else:
+    elif action == 'generate':
         # generation
         morph_info = interp
+    else:
+        return item
 
     item['form'] = morph_info[0].replace('_', ' ')
     item['lemma'] = morph_info[1].replace('_', ' ')
@@ -182,16 +185,16 @@ def process_request(params, concraft):
                     results.append(subitem)
 
                     for item in interp:
-                        subitem.append(tag_items(item))
+                        subitem.append(tag_items(item, option_parser.action))
                 elif isinstance(interp, tuple):
-                    results.append(tag_items(interp))
+                    results.append(tag_items(interp, option_parser.action))
         elif option_parser.action == 'generate':
             for title in option_parser.titles:
                 subitem = []
                 results.append(subitem)
 
                 for interp in morfeusz.generate(title):
-                    subitem.append(tag_items(interp))
+                    subitem.append(tag_items(interp, option_parser.action))
 
         response['version'] = morfeusz2.__version__
         response['dictionaryId'] = morfeusz.dict_id()
