@@ -171,36 +171,40 @@ def process_request(params, concraft):
     if option_parser.validate(response):
         option_parser.set_dictionary_path('MORFEUSZ_DICT_PATH')
         opts = option_parser.get_opts()
-        morfeusz = Morfeusz(**opts)
+        morfeusz = None
 
-        if option_parser.action == 'analyze':
-            dag = morfeusz.analyse(option_parser.text)
+        try:
+            morfeusz = Morfeusz(**opts)
 
-            if concraft is not None and len([k for k in opts if k in CONCRAFT_FORBIDDEN and opts[k] == CONCRAFT_FORBIDDEN[k]]) == 0:
-                dag = concraft.disamb(dag)
+            if option_parser.action == 'analyze':
+                dag = morfeusz.analyse(option_parser.text)
 
-            for interp in dag:
-                if isinstance(interp, list):
+                if concraft is not None and len([k for k in opts if k in CONCRAFT_FORBIDDEN and opts[k] == CONCRAFT_FORBIDDEN[k]]) == 0:
+                    dag = concraft.disamb(dag)
+
+                for interp in dag:
+                    if isinstance(interp, list):
+                        subitem = []
+                        results.append(subitem)
+
+                        for item in interp:
+                            subitem.append(tag_items(item, option_parser.action))
+                    elif isinstance(interp, tuple):
+                        results.append(tag_items(interp, option_parser.action))
+            elif option_parser.action == 'generate':
+                for title in option_parser.titles:
                     subitem = []
                     results.append(subitem)
 
-                    for item in interp:
-                        subitem.append(tag_items(item, option_parser.action))
-                elif isinstance(interp, tuple):
-                    results.append(tag_items(interp, option_parser.action))
-        elif option_parser.action == 'generate':
-            for title in option_parser.titles:
-                subitem = []
-                results.append(subitem)
+                    for interp in morfeusz.generate(title):
+                        subitem.append(tag_items(interp, option_parser.action))
 
-                for interp in morfeusz.generate(title):
-                    subitem.append(tag_items(interp, option_parser.action))
-
-        response['version'] = morfeusz2.__version__
-        response['dictionaryId'] = morfeusz.dict_id()
-        response['copyright'] = morfeusz.dict_copyright()
-
-        # HACK: memory deallocation seems broken (affects Py3 bindings, not the C++ lib)
-        morfeusz2._Morfeusz.__swig_destroy__(morfeusz._morfeusz_obj)
+            response['version'] = morfeusz2.__version__
+            response['dictionaryId'] = morfeusz.dict_id()
+            response['copyright'] = morfeusz.dict_copyright()
+        finally:
+            # HACK: memory deallocation seems broken (affects Py3 bindings, not the C++ lib)
+            if morfeusz is not None:
+                morfeusz2._Morfeusz.__swig_destroy__(morfeusz._morfeusz_obj)
 
     return response
