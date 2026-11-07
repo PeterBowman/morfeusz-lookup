@@ -1,7 +1,7 @@
 import morfeusz2
 from morfeusz2 import Morfeusz
 from enum import Enum
-from distutils.util import strtobool
+from str_to_bool import str_to_bool
 
 class TokenNumbering(Enum):
     separate = morfeusz2.SEPARATE_NUMBERING
@@ -55,7 +55,7 @@ class MorfeuszOptionParser:
             self.morfeusz_opts[morfeusz_param] = default
         else:
             param_value = self.__consume_param(url_param)
-            self.morfeusz_opts[morfeusz_param] = bool(strtobool(param_value))
+            self.morfeusz_opts[morfeusz_param] = bool(str_to_bool(param_value))
 
     def parse_string(self, url_param, morfeusz_param, accepted_values, default):
         if not url_param in self.url_params:
